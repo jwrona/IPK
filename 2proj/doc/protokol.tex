@@ -1,0 +1,75 @@
+%%%%%
+%Soubor: dokumentace.tex
+%Datum: 31.3.2013
+%Autor: Jan Wrona, xwrona00@stud.fit.vutbr.cz
+%Projekt: Dokumentace k projektu 2 pro predmet IPK
+%%%%%
+
+\documentclass[a4paper, 11pt]{article}[31.03.2013]
+  \usepackage[czech]{babel}
+  \usepackage[utf8]{inputenc}
+  \usepackage[T1]{fontenc}
+  \usepackage[text={18cm, 26cm}, left=1.5cm, top=2cm]{geometry}
+
+\begin{document}
+\noindent
+Dokumentace k projektu 2 do IPK 2012/2013\\
+Název projektu: Program pro vyhledání informací o uživatelích Unixového OS\\
+Jméno a příjmení: Jan Wrona\\
+Login: xwrona00
+
+\subsection*{Popis aplikačního protokolu}
+Mým cílem při tvorbě aplikačního protokolu byla jeho jednoduchost, spolehlivost,
+snadnost implementace jak na straně klienta tak serveru. Proto se jedná o textový
+protokol, který je (po vypsání) čitelný a pochopitelný nejen strojově. Taktéž jsem
+se snažil přenést většinu operací na serverový program, proto klient po přijetí zprávy
+už nemusí vykonávat žádné operace, pouze zobrazení na standardní výstup.
+
+Kompletní komunikace mezi serverem a klientem je zajištěna pomocí dvou zpráv.
+První z nich vytvoří klient podle zadaných parametrů, připojí se na server na specifikovaném portu
+a textovou zprávu (požadavek) odešle. Následně čeká na odpověd. Server je konkurentní, 
+implementovaný s využitím procesů, a po přijetí spojení vytvoří nový proces. Rodičovský
+proces se vrací zpět k čekání na další spojení, přičemž vytvořený proces se s přijatým
+spojením vypořádá. Nejprve přijme příchozí požadavek, zpracuje jej a vytvoří podle něj
+odpověď. Zpráva s odpovědí je odeslána, čímž je práce vytvořeného procesu ukončena.
+V tuto chvíli čekající klient tuto odpověď přijme a zobrazí.
+\subsection*{Formát požadavku}
+Požadavek se skládá ze čtyř řádků, každý zakončen znakem LF (Line feed) s ordinární hodnotou
+0x0A. První řádek obsahuje řetězec \texttt{msglen=length}, kde \texttt{length} je délka
+(velikost) zprávy v bajtech bez samotného prvního řádku. Číslo je v šestnáctkové soustavě. Druhý řádek značí kritérium, 
+podle kterého se bude vyhledávat a je ve formátu \texttt{criterion=login} nebo \texttt{criterion=uid}.
+Následující řádek zahrnuje výčet zadaných argumentů, které se budou hledat. Řetězec je ve formátu
+\texttt{arguments=list}, kde \texttt{list} je výčet argumentů oddělených čárkou (0x44).
+Čárka je i za posledním argumentem a při nezadání žádných argumentů je \texttt{list} prázdný řetězec.
+Posledním řádkem je řetězec \texttt{prArgs=args}, kde \texttt{args} je sekvence šesti
+jednoznakových čísel značících, které položky požaduje klient vypsat. Tyto položky jsou
+uživatelské jméno, UID, GID, gecos, domovský adresář a shell. Ve stejném pořadí jsou značeny
+zmíněnou sekvencí čísel. Pokud položka vyžádaná není, číslu je nula, pokud vyžádaná je, číslo
+je pořadí, ve kterém byl klientovi zadán argument na příkazové řádce tzn. pořadí, ve kterém
+je výpis požadován.
+
+\noindent
+{\bf Příklad:}\\
+spuštění programu:\\
+\texttt{./client -h eva.fit.vutbr.cz -p 10000 -u 10 20 30 -L -G -S}\\
+vygenerovaný požadavek: \\
+\texttt{msglen=30\\
+criterion=uid\\
+arguments=10,20,30,\\
+prArgs=102003\\}
+
+\subsection*{Formát odpovědi}
+Odpověď je stejně jako požadavek zahájena řádkem \texttt{msglen=length}, který má význam
+i formát totožný s požadavkem. Následující řádky obsahují informace v textové podobě,
+které klient požadoval. Jednotlivé položky v rámci řádku jsou odděleny mezerou.
+Každá položka na samostatném řádku (ukončovač opět LF). Pokud server
+nenalezl shodu, obsahuje řádek místo požadovaných informací chybové hlášení.
+
+\noindent
+{\bf Příklad:}\\
+při požadavku uvedeném v předchozím příkladu může odpověď vypadat následovně:\\
+\texttt{msglen=44\\
+daemon 1 /sbin/nologin\\
+operator 20 /bin/ksh\\
+Error: unknown UID '30'}
+\end{document}
